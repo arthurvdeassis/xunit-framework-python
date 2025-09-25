@@ -8,14 +8,47 @@ class TestCase:
     def tear_down(self):
         pass
 
-    def run(self):
+    def run(self, result):
+        result.test_started()
         self.set_up()
-        method = getattr(self, self.test_method_name)
-        method()
+        try:
+            test_method = getattr(self, self.test_method_name)
+            test_method()
+        except AssertionError:
+            result.add_failure(self.test_method_name)
+        except Exception:
+            result.add_error(self.test_method_name)
         self.tear_down()
 
 
+class TestResult:
+
+    RUN_MSG = 'run'
+    FAILURE_MSG = 'failed'
+    ERROR_MSG = 'error'
+
+    def __init__(self):
+        self.run_count = 0
+        self.failures = []
+        self.errors = []
+
+    def test_started(self):
+        self.run_count += 1
+
+    def add_failure(self, test):
+        self.failures.append(test)
+
+    def add_error(self, test):
+        self.errors.append(test)
+
+    def summary(self):
+        return f'{self.run_count} {self.RUN_MSG}, ' \
+            f'{len(self.failures)} {self.FAILURE_MSG}, ' \
+            f'{len(self.errors)} {self.ERROR_MSG}'
+
+
 class MyTest(TestCase):
+
     def set_up(self):
         print("set_up")
 
@@ -32,12 +65,15 @@ class MyTest(TestCase):
         print("test_c")
 
 
-if __name__ == "__main__":
-    test = MyTest("test_a")
-    test.run()
+result = TestResult()
 
-    test = MyTest("test_b")
-    test.run()
+test = MyTest("test_a")
+test.run(result)
 
-    test = MyTest("test_c")
-    test.run()
+test = MyTest("test_b")
+test.run(result)
+
+test = MyTest("test_c")
+test.run(result)
+
+print(result.summary())
